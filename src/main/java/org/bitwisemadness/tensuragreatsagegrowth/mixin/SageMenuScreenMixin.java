@@ -4,6 +4,7 @@ import dev.dedek.greatsage.client.SageMenuScreen;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
+import org.bitwisemadness.tensuragreatsagegrowth.TensuraGreatSageGrowth;
 import org.bitwisemadness.tensuragreatsagegrowth.client.FamilyStrip;
 import org.bitwisemadness.tensuragreatsagegrowth.client.FamilyStripLayout;
 import org.spongepowered.asm.mixin.Mixin;
@@ -50,7 +51,12 @@ public class SageMenuScreenMixin {
         Screen screen = (Screen) (Object) this;
         FamilyStripLayout.Row row = FamilyStripLayout.hit(
                 (float) mouseX, (float) mouseY, screen.width, screen.height);
-        if (row == null || row.kind() != FamilyStripLayout.Row.Kind.BUYABLE) {
+        if (row == null) {
+            return;
+        }
+        TensuraGreatSageGrowth.LOGGER.info("growth strip hit: {},{} -> {}/{}",
+                mouseX, mouseY, row.family(), row.kind());
+        if (row.kind() != FamilyStripLayout.Row.Kind.BUYABLE) {
             return;
         }
         Minecraft minecraft = Minecraft.getInstance();

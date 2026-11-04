@@ -95,6 +95,7 @@ public final class FamilyUnlocks {
                 Component.translatable("greatsagegrowth.unlocked", family.displayName())
                         .withStyle(ChatFormatting.GOLD), false);
         announce(player, family);
+        org.bitwisemadness.tensuragreatsagegrowth.net.GreatSageGrowthNetwork.sendState(player);
         return true;
     }
 }

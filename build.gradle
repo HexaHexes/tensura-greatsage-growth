@@ -130,6 +130,9 @@ dependencies {
     localRuntime 'maven.modrinth:great-sage:0.0.7.1'
     localRuntime 'curse.maven:manascore-619025:8022425'
     localRuntime 'curse.maven:architectury-api-419699:5786327'
+    localRuntime "curse.maven:geckolib-388172:8309311"
+    localRuntime "curse.maven:smartbrainlib-661293:7055149"
+    localRuntime "curse.maven:terrablender-neoforge-940057:6054947"
     testImplementation platform('org.junit:junit-bom:5.10.2')
     testImplementation 'org.junit.jupiter:junit-jupiter'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
@@ -241,7 +244,7 @@ checkstyle {
 tasks.withType(Checkstyle).configureEach {
     reports {
         html.required = true
-        xml.required = true
+        xml.required = false
     }
 }
 

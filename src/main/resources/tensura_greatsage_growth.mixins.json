@@ -4,11 +4,10 @@
   "package": "org.bitwisemadness.tensuragreatsagegrowth.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
-    "org.bitwisemadness.tensuragreatsagegrowth.mixin.AnalysisGateMixin"
+    "AnalysisGateMixin"
   ],
   "client": [],
   "server": [],
-  "plugin": "org.bitwisemadness.tensuragreatsagegrowth.mixin.GreatSageGrowthMixinPlugin",
   "injectors": {
     "defaultRequire": 1
   }

@@ -7,14 +7,19 @@ creature reading and console one more family of magic.
 
 ## What it does
 
-*(Design phase. No release has been cut yet. The open issues on this repository
-hold the full plan, research tables and open design decisions.)*
+Three growth upgrades for the Great Sage addon - **Analyze Aspectual Magic**,
+**Analyze Spiritual Magic** and **Analyze Summoning Magic** - each unlocking
+the Sage's analysis screen for one Tensura magic family, which the base addon
+cannot analyse at all (its chain is built for the `Skill` branch only; magic
+skills are refused as unknown).
 
-- Research (in progress): the Great Sage addon's console and reader surfaces
-  from `greatsage-0.0.7.1`, and Tensura's magic-family taxonomy from Tensura
-  2.0.1.3.
-- Three growth upgrades, acquired on Tensura's EP ladder.
-- Built for the Tensura RPG pack.
+- `/sagegrowth unlock <family>` spends Sage XP (aspectual: level 5, spiritual:
+  8, summon: 12; 1000 XP each) - nodes live in this mod's progression bucket
+  because the addon's own node store is a final enum.
+- The unlocked family flows through the addon's own analysis machinery: its
+  messages, voice lines, config-derived durations, and the identical slot
+  contract its tick() consumes.
+- Stack PRs 1-4 carry the implementation; issue #1 holds the research record.
 
 ## Dependencies
 

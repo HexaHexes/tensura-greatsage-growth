@@ -1,5 +1,6 @@
 package org.bitwisemadness.tensuragreatsagegrowth.mixin;
 
+import dev.dedek.greatsage.client.SageConsoleScreen;
 import dev.dedek.greatsage.client.SageMenuScreen;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -14,28 +15,31 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
- * The mod's growth strip inside the Sage menu (stack PR C, issue #10): the
- * addon's tree itself is keyed by its final SageNode enum - layout, glyphs and
- * hubs are all enum maps that cannot be extended - so this hooks the screen
- * instead: the strip renders after the screen's own frame and takes the click
- * first, issuing the server purchase command for a buyable row (the exact path
- * the gametests cover). Client array only.
+ * The mod's growth strip inside the Sage screens (stack PR C, issue #10; the
+ * wrong-screen root cause is documented in issue #17): the addon's node tree
+ * cannot be extended (its layout maps are keyed by the final {@code SageNode}
+ * enum), so the mod renders its own row of family entries - this hook draws it
+ * after the screen's own frame and takes the click first, issuing the server
+ * purchase command for a buyable row (the exact path the gametests cover).
  *
- * <p>No {@code @Shadow} members (issue #15): {@code width}, {@code height},
- * {@code minecraft} and {@code font} all live on {@code Screen}, not on the
- * target class, and shadowing inherited members is exactly what made this mixin
- * fail to apply in the production pack ({@code "@Shadow field width was not
- * located ... No refMap loaded"}) - a silent FATAL that left the strip missing
- * from every real client. The screen size is instead read with a direct field
- * access on {@code Screen}: ordinary bytecode the mixin transformer never has to
- * resolve. The client comes from {@link Minecraft#getInstance()}. Both
- * injection targets, {@code render} and {@code mouseClicked}, are declared by
- * {@code SageMenuScreen} itself.</p>
+ * <p><b>Both screens are targeted</b> (issue #17): the {@code OPEN_MENU}
+ * factory picks between them on the server-synced {@code shaderMenu} flag -
+ * this pack opens {@link SageConsoleScreen}, which is why alpha.8/alpha.9
+ * showed nothing: the strip lived on a screen that never rendered. Both
+ * declare the same {@code render} and {@code mouseClicked} signatures and both
+ * extend {@code Screen}, so the handlers below merge into either, and the
+ * {@code (Screen) (Object) this} access is valid in both.</p>
+ *
+ * <p>The render inject binds every {@code RETURN} rather than {@code TAIL}:
+ * both screens have early returns (close-animation completion), and
+ * {@code TAIL} only binds the last one. No {@code @Shadow} members - screen
+ * size comes from the public {@code Screen} fields via direct access, the
+ * client from {@link Minecraft#getInstance()} (see #15). Client array only.</p>
  */
-@Mixin(SageMenuScreen.class)
-public class SageMenuScreenMixin {
+@Mixin(value = {SageMenuScreen.class, SageConsoleScreen.class})
+public class SageScreensStripMixin {
 
-    @Inject(method = "render(Lnet/minecraft/client/gui/GuiGraphics;IIF)V", at = @At("TAIL"))
+    @Inject(method = "render(Lnet/minecraft/client/gui/GuiGraphics;IIF)V", at = @At("RETURN"))
     private void greatsagegrowth$renderStrip(GuiGraphics gui, int mouseX, int mouseY, float partialTick,
             CallbackInfo ci) {
         Screen screen = (Screen) (Object) this;

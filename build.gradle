@@ -127,6 +127,7 @@ dependencies {
     compileOnly manascoreModuleJars
     manascoreModules 'curse.maven:manascore-619025:8022425'
     localRuntime 'curse.maven:tensura-reincarnated-643695:8793360'
+    localRuntime 'maven.modrinth:great-sage:0.0.7.1'
     localRuntime 'curse.maven:manascore-619025:8022425'
     localRuntime 'curse.maven:architectury-api-419699:5786327'
     testImplementation platform('org.junit:junit-bom:5.10.2')

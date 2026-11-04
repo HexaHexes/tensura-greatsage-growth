@@ -38,6 +38,25 @@ public final class FamilyUnlocks {
         return player.getPersistentData().getCompound(GROWTH_ROOT).getBoolean(family.unlockKey());
     }
 
+    /**
+     * Speak the unlock through the Great Sage addon's own voice API, so the
+     * node lands with the same fanfare as the addon's own tree unlocks. The
+     * voice line is the addon's native "acquired" line; our mod ships no
+     * voice assets of its own (see the PR notes on stack 5).
+     */
+    private static void announce(ServerPlayer player, SageFamily family) {
+        var server = player.getServer();
+        if (server == null) {
+            return;
+        }
+        dev.dedek.greatsage.api.WorldVoice.announce(
+                server,
+                "voice.shutoku_zumi",
+                Component.translatable("greatsagegrowth.unlocked", family.displayName())
+                        .withStyle(ChatFormatting.GOLD),
+                Component.empty(),
+                player.getUUID());
+    }
     private static void record(ServerPlayer player, SageFamily family) {
         net.minecraft.nbt.CompoundTag root = player.getPersistentData().getCompound(GROWTH_ROOT);
         root.putBoolean(family.unlockKey(), true);
@@ -75,6 +94,7 @@ public final class FamilyUnlocks {
         player.displayClientMessage(
                 Component.translatable("greatsagegrowth.unlocked", family.displayName())
                         .withStyle(ChatFormatting.GOLD), false);
+        announce(player, family);
         return true;
     }
 }

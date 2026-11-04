@@ -46,6 +46,15 @@ class SageFamilyTest {
     }
 
     @Test
+    void nodesGateProgressionWithMinLevels() {
+        assertTrue(SageFamily.ASPECTUAL.minLevel() > 0, "aspectual node must gate on a level");
+        assertTrue(SageFamily.SPIRITUAL.minLevel() > SageFamily.ASPECTUAL.minLevel(),
+                "spiritual sits deeper in the progression than aspectual");
+        assertTrue(SageFamily.SUMMON.minLevel() > SageFamily.SPIRITUAL.minLevel(),
+                "summon sits deeper in the progression than spiritual");
+    }
+
+    @Test
     void familyRecognitionIsPackageBased() {
         String prefix = "io.github.manasmods.tensura.ability.magic.";
         assertTrue(SageFamily.ASPECTUAL.ownsSkillClassName(prefix + "aspectual.fire.FireMagic"));

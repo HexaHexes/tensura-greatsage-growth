@@ -6,7 +6,9 @@
   "mixins": [
     "AnalysisGateMixin"
   ],
-  "client": [],
+  "client": [
+    "SkillGraphFamilyMixin"
+  ],
   "server": [],
   "injectors": {
     "defaultRequire": 1

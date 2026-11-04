@@ -23,9 +23,25 @@ public final class FamilyUnlocks {
     private FamilyUnlocks() {
     }
 
-    /** Whether the player's Sage has the family unlock. */
+    /** The addon's persisted-data bucket this mod keeps its own unlocks in. */
+    private static final String GROWTH_ROOT = "greatsagegrowth";
+
+    /**
+     * Whether the player's Sage has the family unlock.
+     *
+     * <p>The addon's own unlocked-set is enum-backed ({@code SageNode.byId}
+     * drops unknown keys - see #1), so the three growth nodes live in this
+     * mod's own bucket of the same persisted data. The analysis gate and the
+     * purchase flow both read here.</p>
+     */
     public static boolean isUnlocked(ServerPlayer player, SageFamily family) {
-        return SageProgress.unlocked(player).contains(family.unlockKey());
+        return player.getPersistentData().getCompound(GROWTH_ROOT).getBoolean(family.unlockKey());
+    }
+
+    private static void record(ServerPlayer player, SageFamily family) {
+        net.minecraft.nbt.CompoundTag root = player.getPersistentData().getCompound(GROWTH_ROOT);
+        root.putBoolean(family.unlockKey(), true);
+        player.getPersistentData().put(GROWTH_ROOT, root);
     }
 
     /**
@@ -41,6 +57,12 @@ public final class FamilyUnlocks {
                             .withStyle(ChatFormatting.GRAY), true);
             return false;
         }
+        if (SageProgress.level(player) < family.minLevel()) {
+            player.displayClientMessage(
+                    Component.translatable("greatsagegrowth.needLevel", family.minLevel(), family.displayName())
+                            .withStyle(ChatFormatting.GRAY), true);
+            return false;
+        }
         int xp = SageProgress.xp(player);
         if (xp < XP_COST) {
             player.displayClientMessage(
@@ -49,7 +71,7 @@ public final class FamilyUnlocks {
             return false;
         }
         SageProgress.setXp(player, xp - XP_COST);
-        SageProgress.unlock(player, family.unlockKey());
+        record(player, family);
         player.displayClientMessage(
                 Component.translatable("greatsagegrowth.unlocked", family.displayName())
                         .withStyle(ChatFormatting.GOLD), false);

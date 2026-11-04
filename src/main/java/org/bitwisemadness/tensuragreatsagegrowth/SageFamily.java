@@ -11,20 +11,27 @@ package org.bitwisemadness.tensuragreatsagegrowth;
  * for this table to exist (unit tests run without the mod classpath).</p>
  */
 public enum SageFamily {
-    ASPECTUAL("FAMILY_ASPECTUAL", "aspectual", "Aspectual Magic"),
-    SPIRITUAL("FAMILY_SPIRITUAL", "spiritual", "Spiritual Magic"),
-    SUMMON("FAMILY_SUMMON", "summon", "Summoning Magic");
+    ASPECTUAL("FAMILY_ASPECTUAL", "aspectual", "Aspectual Magic", 5),
+    SPIRITUAL("FAMILY_SPIRITUAL", "spiritual", "Spiritual Magic", 8),
+    SUMMON("FAMILY_SUMMON", "summon", "Summoning Magic", 12);
 
     private static final String SKILL_PACKAGE_PREFIX = "io.github.manasmods.tensura.ability.magic.";
 
     private final String unlockKey;
     private final String tensuraPackage;
     private final String displayName;
+    private final int minLevel;
 
-    SageFamily(String unlockKey, String tensuraPackage, String displayName) {
+    SageFamily(String unlockKey, String tensuraPackage, String displayName, int minLevel) {
         this.unlockKey = unlockKey;
         this.tensuraPackage = tensuraPackage;
         this.displayName = displayName;
+        this.minLevel = minLevel;
+    }
+
+    /** The Sage level this node requires, mirroring the addon's SageNode convention. */
+    public int minLevel() {
+        return minLevel;
     }
 
     /** The key stored in the addon's unlocked-set NBT for this family. */

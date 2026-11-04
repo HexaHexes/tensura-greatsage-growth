@@ -21,5 +21,6 @@ public final class TensuraGreatSageGrowth {
     public TensuraGreatSageGrowth(IEventBus modBus) {
         LOGGER.info("Tensura: Great Sage - Growth initialized");
         NeoForge.EVENT_BUS.addListener(SageGrowthCommands::onRegisterCommands);
+        NeoForge.EVENT_BUS.addListener(AnalysisCompletionListener::onPlayerTick);
     }
 }

@@ -3,6 +3,7 @@ package org.bitwisemadness.tensuragreatsagegrowth;
 import com.mojang.logging.LogUtils;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
+import net.neoforged.neoforge.common.NeoForge;
 import org.slf4j.Logger;
 
 /**
@@ -19,5 +20,6 @@ public final class TensuraGreatSageGrowth {
 
     public TensuraGreatSageGrowth(IEventBus modBus) {
         LOGGER.info("Tensura: Great Sage - Growth initialized");
+        NeoForge.EVENT_BUS.addListener(SageGrowthCommands::onRegisterCommands);
     }
 }

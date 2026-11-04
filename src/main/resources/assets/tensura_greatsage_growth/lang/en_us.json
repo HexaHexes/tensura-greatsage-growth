@@ -1,0 +1,8 @@
+{
+  "greatsagegrowth.familyLocked": "The Great Sage has not unlocked %s analysis yet.",
+  "greatsagegrowth.unlocked": "Analysis of %s unlocked.",
+  "greatsagegrowth.alreadyUnlocked": "%s analysis is already unlocked.",
+  "greatsagegrowth.needXp": "The Sage needs %1$d XP to learn %2$s analysis.",
+  "greatsagegrowth.playersOnly": "This command is for players.",
+  "greatsagegrowth.unknownFamily": "Unknown family. Try: aspectual, spiritual, summon."
+}

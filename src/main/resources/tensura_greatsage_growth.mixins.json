@@ -3,9 +3,12 @@
   "minVersion": "0.8",
   "package": "org.bitwisemadness.tensuragreatsagegrowth.mixin",
   "compatibilityLevel": "JAVA_21",
-  "mixins": [],
+  "mixins": [
+    "org.bitwisemadness.tensuragreatsagegrowth.mixin.AnalysisGateMixin"
+  ],
   "client": [],
   "server": [],
+  "plugin": "org.bitwisemadness.tensuragreatsagegrowth.mixin.GreatSageGrowthMixinPlugin",
   "injectors": {
     "defaultRequire": 1
   }

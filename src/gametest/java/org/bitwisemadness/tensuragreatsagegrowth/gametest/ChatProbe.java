@@ -18,6 +18,39 @@ public final class ChatProbe {
     private ChatProbe() {
     }
 
+    /** A census of the packet classes waiting in this player's outbound queue. */
+    public static String outboundCensus(ServerPlayer player) {
+        try {
+            Field connField = null;
+            for (Class<?> type = player.connection.getClass(); type != null; type = type.getSuperclass()) {
+                try {
+                    connField = type.getDeclaredField("connection");
+                    break;
+                } catch (NoSuchFieldException ignored) {
+                    // keep walking up: the connection field lives on a superclass
+                }
+            }
+            if (connField == null) {
+                return "no-connection-field";
+            }
+            connField.setAccessible(true);
+            Connection connection = (Connection) connField.get(player.connection);
+            Field channelField = Connection.class.getDeclaredField("channel");
+            channelField.setAccessible(true);
+            Object channel = channelField.get(connection);
+            if (!(channel instanceof io.netty.channel.embedded.EmbeddedChannel embedded)) {
+                return "not-embedded: " + channel;
+            }
+            StringBuilder kinds = new StringBuilder();
+            for (Object msg : embedded.outboundMessages()) {
+                kinds.append(msg.getClass().getSimpleName()).append(',');
+            }
+            return kinds.toString();
+        } catch (ReflectiveOperationException | RuntimeException e) {
+            return "probe-failed: " + e;
+        }
+    }
+
     /** The newest system-chat text sent to this player, or a queue census if none. */
     public static String lastSystemChat(ServerPlayer player) {
         try {

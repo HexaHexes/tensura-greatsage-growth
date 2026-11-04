@@ -22,5 +22,14 @@ public final class TensuraGreatSageGrowth {
         LOGGER.info("Tensura: Great Sage - Growth initialized");
         NeoForge.EVENT_BUS.addListener(SageGrowthCommands::onRegisterCommands);
         NeoForge.EVENT_BUS.addListener(AnalysisCompletionListener::onPlayerTick);
+        NeoForge.EVENT_BUS.addListener(TensuraGreatSageGrowth::onPlayerLoggedIn);
+        modBus.addListener(org.bitwisemadness.tensuragreatsagegrowth.net.GreatSageGrowthNetwork::onRegisterPayloads);
+    }
+
+    /** On join: hand the client its unlock flags so the screens can render. */
+    private static void onPlayerLoggedIn(net.neoforged.neoforge.event.entity.player.PlayerEvent.PlayerLoggedInEvent event) {
+        if (event.getEntity() instanceof net.minecraft.server.level.ServerPlayer player) {
+            org.bitwisemadness.tensuragreatsagegrowth.net.GreatSageGrowthNetwork.sendState(player);
+        }
     }
 }

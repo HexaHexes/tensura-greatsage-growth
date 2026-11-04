@@ -40,6 +40,9 @@ public final class FamilyUpgradeGameTests {
                 "the purchase must spend exactly " + FamilyUnlocks.XP_COST + " XP; got "
                         + (before - SageProgress.xp(player)));
 
+        String census = ChatProbe.outboundCensus(player);
+        helper.assertTrue(census.contains("Payload"),
+                "the purchase must sync the unlock flags to the client; outbound: " + census);
         int afterFirst = SageProgress.xp(player);
         helper.assertTrue(!FamilyUnlocks.purchase(player, SageFamily.ASPECTUAL),
                 "a second purchase must refuse as already unlocked");

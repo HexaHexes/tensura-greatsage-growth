@@ -36,7 +36,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  * <p>The node recipe is a faithful port of the decompiled
  * {@code SkillTreeView.node()}/{@code tooltip()}: dark fill, additive glow and
  * ring in the state colours (owned -> ACQUIRED, ready -> READY, gated ->
- * LOCKED), second ring for owned, glyph at {@code 0.75 * zoom}; tooltips carry
+ * LOCKED), concentric inner ring (radius - 2.5) on every node, glyph at {@code 0.75 * zoom}; tooltips carry
  * title, wrapped description, a compact cost line and the base's own
  * "Needs level" phrasing ({@code greatsage.tree.needLevel}).</p>
  */
@@ -162,9 +162,9 @@ public class SkillTreeViewFamilyNodesMixin {
         float glow = owned ? 0.8F : ready ? 0.55F : 0.22F;
         Paint.glow(gui, cx, cy, r * 2.6F, tone, glow * 0.6F);
         Paint.ring(gui, cx, cy, r, tone, owned ? 0.95F : 0.6F);
-        if (owned) {
-            Paint.ring(gui, cx, cy - 2.5F, r, tone, 0.7F);
-        }
+        // concentric inner ring: the old y-2.5 offset made the two circles
+        // intersect (playtest 13:29-13:32); the base pairs radius with radius-2.5.
+        Paint.ring(gui, cx, cy, Math.max(r - 2.5F, 1.5F), tone, owned ? 0.7F : 0.45F);
         Paint.endAdditive(gui);
 
         String glyph = Component.translatable("greatsagegrowth.tree." + family.tensuraPackage() + ".glyph")

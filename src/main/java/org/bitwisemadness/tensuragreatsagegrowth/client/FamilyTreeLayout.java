@@ -30,9 +30,10 @@ public final class FamilyTreeLayout {
     private FamilyTreeLayout() {
     }
 
-    /** The tree-space x of the family column (all three share it). */
+    /** The tree-space x of the family column (all three share it; moved one
+     * cell right of the first draft per the playtest - less clutter). */
     public static float rawX(SageFamily family) {
-        return 1.0F;
+        return 2.0F;
     }
 
     /** The tree-space y: the same rows as RANK_RESISTANCE/EXTRA/UNIQUE. */

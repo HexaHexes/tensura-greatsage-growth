@@ -8,7 +8,8 @@
   ],
   "client": [
     "SkillGraphFamilyMixin",
-    "SageScreensStripMixin"
+    "SageScreensStripMixin",
+    "SkillTreeViewFamilyNodesMixin"
   ],
   "server": [],
   "injectors": {

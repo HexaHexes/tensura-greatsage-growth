@@ -13,6 +13,7 @@
   "greatsage.filter.tier.aspectual": "Aspectual",
   "greatsage.filter.tier.spiritual": "Spiritual",
   "greatsage.filter.tier.summon": "Summoning",
+  "greatsagegrowth.tree.cost": "Cost: %s XP",
   "greatsagegrowth.tree.aspectual.glyph": "\u89b3",
   "greatsagegrowth.tree.spiritual.glyph": "\u970a",
   "greatsagegrowth.tree.summon.glyph": "\u53ec",

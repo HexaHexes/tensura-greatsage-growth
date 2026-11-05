@@ -11,9 +11,9 @@ package org.bitwisemadness.tensuragreatsagegrowth;
  * for this table to exist (unit tests run without the mod classpath).</p>
  */
 public enum SageFamily {
-    ASPECTUAL("FAMILY_ASPECTUAL", "aspectual", "Aspectual Magic", 5),
-    SPIRITUAL("FAMILY_SPIRITUAL", "spiritual", "Spiritual Magic", 8),
-    SUMMON("FAMILY_SUMMON", "summon", "Summoning Magic", 12);
+    ASPECTUAL("FAMILY_ASPECTUAL", "aspectual", "Aspectual magic", 5),
+    SPIRITUAL("FAMILY_SPIRITUAL", "spiritual", "Spiritual magic", 8),
+    SUMMON("FAMILY_SUMMON", "summon", "Summoning magic", 12);
 
     private static final String SKILL_PACKAGE_PREFIX = "io.github.manasmods.tensura.ability.magic.";
 

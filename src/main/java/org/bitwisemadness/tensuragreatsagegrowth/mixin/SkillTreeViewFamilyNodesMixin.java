@@ -23,24 +23,22 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
  * The three family upgrades as proper nodes inside the addon's growth tree
- * (owner rulings on issue #20: parallel to the rank column, <b>starting from
- * the Resistance node</b>, and <b>styled exactly like the base mod's nodes</b>
- * - same fill/glow/ring/glyph recipe, same state colours, and name,
- * description and requirements in a <b>hover tooltip</b> instead of permanent
- * labels).
+ * (owner rulings on issue #20: parallel to the rank column, starting from the
+ * Resistance node, base-mod style, tooltip-based info - and, from the
+ * 13:29-13:32 playtest, <b>never drawn over the base mod's tooltips</b>).
  *
- * <p>The recipe below is a faithful port of the decompiled
- * {@code SkillTreeView.node()} and {@code tooltip()}: dark fill
- * ({@code (240<<24)|465426}), additive glow and ring in the state's colour
- * (owned -> ACQUIRED, affordable -> READY, otherwise LOCKED), a second ring for
- * owned nodes, the glyph at {@code 0.75 * zoom} inside the ring, and tooltips
- * built as title + wrapped description + requirement lines at 0.6 scale with
- * edge flipping/clamping against the view box. Placement and pan/zoom use the
- * addon's own {@code place()} formula via {@link FamilyTreeLayout}.</p>
+ * <p><b>Two injection points enforce the z-order</b>: the nodes and their
+ * thread draw right <b>after the view scissor is released</b> (once per frame,
+ * before the base's own tooltip pass), and only the <b>hover tooltip</b> draws
+ * at {@code RETURN} - so base tooltips always cover our nodes, and our tooltip
+ * draws last like theirs.</p>
  *
- * <p>Clicks inject into {@code click(DDFFF)} HEAD and mirror its tolerance
- * ({@code radius() + 3 * zoom}); a hit issues the server purchase command and
- * returns {@code null}, which both screens treat as "nothing selected".</p>
+ * <p>The node recipe is a faithful port of the decompiled
+ * {@code SkillTreeView.node()}/{@code tooltip()}: dark fill, additive glow and
+ * ring in the state colours (owned -> ACQUIRED, ready -> READY, gated ->
+ * LOCKED), second ring for owned, glyph at {@code 0.75 * zoom}; tooltips carry
+ * title, wrapped description, a compact cost line and the base's own
+ * "Needs level" phrasing ({@code greatsage.tree.needLevel}).</p>
  */
 @Mixin(targets = "dev.dedek.greatsage.client.SkillTreeView")
 public class SkillTreeViewFamilyNodesMixin {
@@ -90,47 +88,62 @@ public class SkillTreeViewFamilyNodesMixin {
     private void segment(GuiGraphics gui, float x1, float y1, float x2, float y2, int color, float alpha) {
     }
 
+    private float[] greatsagegrowth$pos(int index) {
+        SageFamily family = SageFamily.values()[index];
+        return new float[] {
+                FamilyTreeLayout.screen(originX(), FamilyTreeLayout.rawX(family), zoom),
+                FamilyTreeLayout.screen(originY(), FamilyTreeLayout.rawY(family), zoom)
+        };
+    }
+
+    /** Nodes + thread: after the view scissor release, before the base tooltip pass. */
+    @Inject(
+            method = "render(Lnet/minecraft/client/gui/GuiGraphics;Lnet/minecraft/client/gui/Font;FFFFFDD)V",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lnet/minecraft/client/gui/GuiGraphics;disableScissor()V",
+                    shift = At.Shift.AFTER))
+    private void greatsagegrowth$renderFamilyNodes(GuiGraphics gui, Font font, float p1, float p2, float p3,
+            float p4, float p5, double mouseX, double mouseY, CallbackInfo ci) {
+        if (!firstFrameLogged) {
+            firstFrameLogged = true;
+            float[] first = greatsagegrowth$pos(0);
+            TensuraGreatSageGrowth.LOGGER.info(
+                    "growth tree nodes first frame: origin=({},{}) zoom={} aspectual=({},{})",
+                    (int) originX(), (int) originY(), zoom, (int) first[0], (int) first[1]);
+        }
+        // the branch starts at the Resistance node (ruling on #20)
+        float[] anchor = {
+                FamilyTreeLayout.screen(originX(), FamilyTreeLayout.ANCHOR_X, zoom),
+                FamilyTreeLayout.screen(originY(), FamilyTreeLayout.ANCHOR_Y, zoom)
+        };
+        float[] firstNode = greatsagegrowth$pos(0);
+        segment(gui, anchor[0], anchor[1], firstNode[0], firstNode[1], ACQUIRED_COLOR, 0.75F);
+        for (int i = 0; i + 1 < SageFamily.values().length; i++) {
+            float[] a = greatsagegrowth$pos(i);
+            float[] b = greatsagegrowth$pos(i + 1);
+            segment(gui, a[0], a[1], b[0], b[1], ACQUIRED_COLOR, 0.75F);
+        }
+        for (int i = 0; i < SageFamily.values().length; i++) {
+            float[] p = greatsagegrowth$pos(i);
+            drawNode(gui, font, SageFamily.values()[i], p[0], p[1], radius(), zoom);
+        }
+    }
+
+    /** The hover tooltip only: at RETURN it lands after the base's own tooltip. */
     @Inject(
             method = "render(Lnet/minecraft/client/gui/GuiGraphics;Lnet/minecraft/client/gui/Font;FFFFFDD)V",
             at = @At("RETURN"))
-    private void greatsagegrowth$renderFamilyNodes(GuiGraphics gui, Font font, float p1, float p2, float p3,
+    private void greatsagegrowth$renderFamilyTooltip(GuiGraphics gui, Font font, float p1, float p2, float p3,
             float p4, float p5, double mouseX, double mouseY, CallbackInfo ci) {
-        float ox = originX();
-        float oy = originY();
-        float r = radius();
-        float[] cx = new float[SageFamily.values().length];
-        float[] cy = new float[SageFamily.values().length];
+        double hover = radius() + (8.0F * zoom);
         for (SageFamily family : SageFamily.values()) {
-            int i = family.ordinal();
-            cx[i] = FamilyTreeLayout.screen(ox, FamilyTreeLayout.rawX(family), zoom);
-            cy[i] = FamilyTreeLayout.screen(oy, FamilyTreeLayout.rawY(family), zoom);
-        }
-        if (!firstFrameLogged) {
-            firstFrameLogged = true;
-            TensuraGreatSageGrowth.LOGGER.info(
-                    "growth tree nodes first frame: origin=({},{}) zoom={} aspectual=({},{})",
-                    (int) ox, (int) oy, zoom, (int) cx[0], (int) cy[0]);
-        }
-        // the branch starts at the Resistance node (ruling on #20)
-        float ax = FamilyTreeLayout.screen(ox, FamilyTreeLayout.ANCHOR_X, zoom);
-        float ay = FamilyTreeLayout.screen(oy, FamilyTreeLayout.ANCHOR_Y, zoom);
-        segment(gui, ax, ay, cx[0], cy[0], ACQUIRED_COLOR, 0.75F);
-        for (int i = 0; i + 1 < cx.length; i++) {
-            segment(gui, cx[i], cy[i], cx[i + 1], cy[i + 1], ACQUIRED_COLOR, 0.75F);
-        }
-        for (SageFamily family : SageFamily.values()) {
-            int i = family.ordinal();
-            drawNode(gui, font, family, cx[i], cy[i], r, zoom);
-        }
-        // hover tooltip, like the base mod's nodes
-        double hover = r + (8.0F * zoom);
-        for (SageFamily family : SageFamily.values()) {
-            int i = family.ordinal();
-            double dx = mouseX - cx[i];
-            double dy = mouseY - cy[i];
+            float[] p = greatsagegrowth$pos(family.ordinal());
+            double dx = mouseX - p[0];
+            double dy = mouseY - p[1];
             if ((dx * dx) + (dy * dy) <= hover * hover) {
                 tooltip(gui, font, family, (float) mouseX, (float) mouseY);
-                break;
+                return;
             }
         }
     }
@@ -166,7 +179,7 @@ public class SkillTreeViewFamilyNodesMixin {
         pose.popPose();
     }
 
-    /** The base mod's tooltip: title, wrapped description, requirement lines. */
+    /** The base mod's tooltip: title, wrapped description, cost, base's need-level line. */
     private void tooltip(GuiGraphics gui, Font font, SageFamily family, float mouseX, float mouseY) {
         boolean owned = ClientFamilyUnlocks.isUnlocked(family);
         List<String> lines = new ArrayList<>();
@@ -175,12 +188,11 @@ public class SkillTreeViewFamilyNodesMixin {
                 .translatable("greatsagegrowth.tree." + family.tensuraPackage() + ".desc").getString());
         if (owned) {
             lines.add(Component.translatable("greatsagegrowth.unlocked", family.displayName()).getString());
-        } else if (SageProgressClient.level() < family.minLevel()) {
-            lines.add(Component.translatable("greatsagegrowth.needLevel", family.minLevel(),
-                    family.displayName()).getString());
         } else {
-            lines.add(Component.translatable("greatsagegrowth.needXp", FamilyUnlocks.XP_COST,
-                    family.displayName()).getString());
+            lines.add(Component.translatable("greatsagegrowth.tree.cost", FamilyUnlocks.XP_COST).getString());
+            if (SageProgressClient.level() < family.minLevel()) {
+                lines.add(Component.translatable("greatsage.tree.needLevel", family.minLevel()).getString());
+            }
         }
 
         int width = 0;

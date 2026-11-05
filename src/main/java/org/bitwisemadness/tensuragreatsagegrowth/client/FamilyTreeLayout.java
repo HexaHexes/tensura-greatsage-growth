@@ -36,12 +36,13 @@ public final class FamilyTreeLayout {
         return 2.0F;
     }
 
-    /** The tree-space y: the same rows as RANK_RESISTANCE/EXTRA/UNIQUE. */
+    /** The tree-space y: aligned with RANK_EXTRA (-4), RANK_UNIQUE (-6) and RANK_ULTIMATE
+     * (-8), per the playtest ruling. */
     public static float rawY(SageFamily family) {
         return switch (family) {
-            case ASPECTUAL -> -2.0F;
-            case SPIRITUAL -> -4.0F;
-            case SUMMON -> -6.0F;
+            case ASPECTUAL -> -4.0F;
+            case SPIRITUAL -> -6.0F;
+            case SUMMON -> -8.0F;
         };
     }
 

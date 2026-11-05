@@ -25,10 +25,12 @@ class FamilyTreeLayoutTest {
         // in the adjacent column at x = 1, with the thread anchored at Resistance.
         assertEquals(0.0F, FamilyTreeLayout.ANCHOR_X, 0.0F, "anchor is the Resistance node");
         assertEquals(-2.0F, FamilyTreeLayout.ANCHOR_Y, 0.0F, "anchor row");
-        assertEquals(-2.0F, FamilyTreeLayout.rawY(SageFamily.ASPECTUAL), 0.0F,
-                "first family shares Resistance's row");
-        assertEquals(-4.0F, FamilyTreeLayout.rawY(SageFamily.SPIRITUAL), 0.0F);
-        assertEquals(-6.0F, FamilyTreeLayout.rawY(SageFamily.SUMMON), 0.0F);
+        assertEquals(-4.0F, FamilyTreeLayout.rawY(SageFamily.ASPECTUAL), 0.0F,
+                "aspectual aligns with RANK_EXTRA");
+        assertEquals(-6.0F, FamilyTreeLayout.rawY(SageFamily.SPIRITUAL), 0.0F,
+                "spiritual aligns with RANK_UNIQUE");
+        assertEquals(-8.0F, FamilyTreeLayout.rawY(SageFamily.SUMMON), 0.0F,
+                "summon aligns with RANK_ULTIMATE");
         for (SageFamily family : SageFamily.values()) {
             assertEquals(2.0F, FamilyTreeLayout.rawX(family), 0.0F,
                     "one column, two cells right of the Resistance node (playtest: declutter)");

@@ -1,5 +1,6 @@
 package org.bitwisemadness.tensuragreatsagegrowth.gametest;
 
+import dev.dedek.greatsage.SageNode;
 import dev.dedek.greatsage.server.AnalysisManager;
 import dev.dedek.greatsage.server.SageProgress;
 import io.github.manasmods.manascore.skill.api.ManasSkill;
@@ -33,7 +34,15 @@ public final class SummonUpgradeGameTests {
     @GameTest(template = "empty")
     public static void summon_gate_opens_with_unlock(GameTestHelper helper) {
         ServerPlayer player = MockPlayers.create(helper);
-        SageProgress.setXp(player, 10_000_000);
+        // fixture: RANK_ULTIMATE's gate (level 38) and the whole family
+        // thread - Resistance, Aspectual, Spiritual. RANK_EXTRA/RANK_UNIQUE
+        // stay locked on purpose: summoning requires spiritual, not unique.
+        SageProgress.setXp(player, SageProgress.xpForLevel(SageNode.RANK_ULTIMATE.minLevel()));
+        SageProgress.unlock(player, SageNode.RANK_RESISTANCE.id());
+        helper.assertTrue(FamilyUnlocks.purchase(player, SageFamily.ASPECTUAL),
+                "fixture: aspectual must be purchasable");
+        helper.assertTrue(FamilyUnlocks.purchase(player, SageFamily.SPIRITUAL),
+                "fixture: spiritual must be purchasable once aspectual is unlocked");
 
         List<ResourceLocation> candidates = new ArrayList<>();
         for (ManasSkill skill : SkillAPI.getSkillRegistry()) {
@@ -59,8 +68,15 @@ public final class SummonUpgradeGameTests {
         helper.assertTrue(AnalysisManager.progressBySkill(player).isEmpty(),
                 "the family gate must refuse every summon analysis before the unlock");
 
+        // the purchase clears the mirrored rank gate (level fixture above,
+        // points at level 38) and spends exactly RANK_ULTIMATE's cost
+        int pointsBefore = SageProgress.points(player);
         helper.assertTrue(FamilyUnlocks.purchase(player, SageFamily.SUMMON),
-                "the summon node must be purchasable with level and XP to spare");
+                "the summon node must be purchasable once spiritual is unlocked");
+        int spent = pointsBefore - SageProgress.points(player);
+        helper.assertTrue(spent == SageNode.RANK_ULTIMATE.cost(),
+                "the purchase must spend exactly RANK_ULTIMATE's cost ("
+                        + SageNode.RANK_ULTIMATE.cost() + " points); got " + spent);
 
         boolean started = false;
         StringBuilder refusals = new StringBuilder();

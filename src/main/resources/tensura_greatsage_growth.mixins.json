@@ -4,7 +4,8 @@
   "package": "org.bitwisemadness.tensuragreatsagegrowth.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
-    "AnalysisGateMixin"
+    "AnalysisGateMixin",
+    "SageProgressSpentMixin"
   ],
   "client": [
     "SkillGraphFamilyMixin",

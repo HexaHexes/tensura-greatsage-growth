@@ -11,9 +11,9 @@ package org.bitwisemadness.tensuragreatsagegrowth;
  * for this table to exist (unit tests run without the mod classpath).</p>
  */
 public enum SageFamily {
-    ASPECTUAL("FAMILY_ASPECTUAL", "aspectual", "Aspectual magic", 5),
-    SPIRITUAL("FAMILY_SPIRITUAL", "spiritual", "Spiritual magic", 8),
-    SUMMON("FAMILY_SUMMON", "summon", "Summoning magic", 12);
+    ASPECTUAL("FAMILY_ASPECTUAL", "aspectual", "Aspectual magic", 9),
+    SPIRITUAL("FAMILY_SPIRITUAL", "spiritual", "Spiritual magic", 20),
+    SUMMON("FAMILY_SUMMON", "summon", "Summoning magic", 38);
 
     private static final String SKILL_PACKAGE_PREFIX = "io.github.manasmods.tensura.ability.magic.";
 
@@ -29,7 +29,12 @@ public enum SageFamily {
         this.minLevel = minLevel;
     }
 
-    /** The Sage level this node requires, mirroring the addon's SageNode convention. */
+    /**
+     * The Sage level this node requires: a mirror of the mapped rank node's
+     * minLevel (owner ruling - Aspectual = Extra, Spiritual = Unique,
+     * Summoning = Ultimate). Unit tests run without the addon jar, so the
+     * gametest pins this copy against the live SageNode value.
+     */
     public int minLevel() {
         return minLevel;
     }

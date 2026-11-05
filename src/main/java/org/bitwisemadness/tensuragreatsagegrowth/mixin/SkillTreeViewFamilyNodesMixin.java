@@ -2,9 +2,14 @@ package org.bitwisemadness.tensuragreatsagegrowth.mixin;
 
 import dev.dedek.greatsage.SageNode;
 import dev.dedek.greatsage.client.Paint;
+import dev.dedek.greatsage.client.SageProgressClient;
+import java.util.ArrayList;
+import java.util.List;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.network.chat.Component;
+import org.bitwisemadness.tensuragreatsagegrowth.FamilyUnlocks;
 import org.bitwisemadness.tensuragreatsagegrowth.SageFamily;
 import org.bitwisemadness.tensuragreatsagegrowth.TensuraGreatSageGrowth;
 import org.bitwisemadness.tensuragreatsagegrowth.client.FamilyTreeLayout;
@@ -18,39 +23,53 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
  * The three family upgrades as proper nodes inside the addon's growth tree
- * (owner ruling on issue #20: parallel to the Resistance/Extra/Unique rank
- * column).
+ * (owner rulings on issue #20: parallel to the rank column, <b>starting from
+ * the Resistance node</b>, and <b>styled exactly like the base mod's nodes</b>
+ * - same fill/glow/ring/glyph recipe, same state colours, and name,
+ * description and requirements in a <b>hover tooltip</b> instead of permanent
+ * labels).
  *
- * <p>Placement comes from {@link FamilyTreeLayout}: the same three rows as the
- * rank nodes (y = -2/-4/-6) in the adjacent column at x=2, mapped with the
- * addon's own formula from {@code place()} -
- * {@code origin + raw * (34 * zoom)} - so pan/zoom/fit track exactly. Drawing
- * happens at {@code render}'s RETURN: that method keeps the pose at identity
- * and has already disabled its view scissor, so plain coordinates work. Clicks
- * inject into {@code click} HEAD and mirror its own tolerance
+ * <p>The recipe below is a faithful port of the decompiled
+ * {@code SkillTreeView.node()} and {@code tooltip()}: dark fill
+ * ({@code (240<<24)|465426}), additive glow and ring in the state's colour
+ * (owned -> ACQUIRED, affordable -> READY, otherwise LOCKED), a second ring for
+ * owned nodes, the glyph at {@code 0.75 * zoom} inside the ring, and tooltips
+ * built as title + wrapped description + requirement lines at 0.6 scale with
+ * edge flipping/clamping against the view box. Placement and pan/zoom use the
+ * addon's own {@code place()} formula via {@link FamilyTreeLayout}.</p>
+ *
+ * <p>Clicks inject into {@code click(DDFFF)} HEAD and mirror its tolerance
  * ({@code radius() + 3 * zoom}); a hit issues the server purchase command and
  * returns {@code null}, which both screens treat as "nothing selected".</p>
- *
- * <p>State colours are {@code SkillTreeView}'s own constants (values inlined as
- * literals because javac rejects uninitialised shadowed static finals), and the
- * ring goes through the addon's {@code Paint.ring} so it matches the tree's
- * rendering in both shader modes.</p>
  */
 @Mixin(targets = "dev.dedek.greatsage.client.SkillTreeView")
 public class SkillTreeViewFamilyNodesMixin {
 
-    /** SkillTreeView.ACQUIRED - the teal "owned" tone. */
+    /** SkillTreeView colour constants (inlined - javac rejects uninitialised shadowed finals). */
     private static final int ACQUIRED_COLOR = 14679276;
-    /** SkillTreeView.READY - the green "available" tone. */
     private static final int READY_COLOR = 9431488;
-    /** SkillTreeView.GOLD - owned emphasis. */
-    private static final int GOLD_COLOR = 16765562;
+    private static final int LOCKED_COLOR = 6256232;
+    private static final int NODE_FILL = 465426;
+    private static final int TOOLTIP_BG = 267278;
+    private static final int TOOLTIP_BODY = 10469295;
 
-    /** One-shot first-frame log; replaces the removed corner strip diagnostics (#20). */
+    /** One-shot first-frame log (#17-style diagnostics for the tree nodes). */
     private static volatile boolean firstFrameLogged;
 
     @Shadow
     private float zoom;
+
+    @Shadow
+    private float viewLeft;
+
+    @Shadow
+    private float viewTop;
+
+    @Shadow
+    private float viewWidth;
+
+    @Shadow
+    private float viewHeight;
 
     @Shadow
     private float originX() {
@@ -92,26 +111,122 @@ public class SkillTreeViewFamilyNodesMixin {
                     "growth tree nodes first frame: origin=({},{}) zoom={} aspectual=({},{})",
                     (int) ox, (int) oy, zoom, (int) cx[0], (int) cy[0]);
         }
-        // chain first so the nodes sit on top of their thread
+        // the branch starts at the Resistance node (ruling on #20)
+        float ax = FamilyTreeLayout.screen(ox, FamilyTreeLayout.ANCHOR_X, zoom);
+        float ay = FamilyTreeLayout.screen(oy, FamilyTreeLayout.ANCHOR_Y, zoom);
+        segment(gui, ax, ay, cx[0], cy[0], ACQUIRED_COLOR, 0.75F);
         for (int i = 0; i + 1 < cx.length; i++) {
             segment(gui, cx[i], cy[i], cx[i + 1], cy[i + 1], ACQUIRED_COLOR, 0.75F);
         }
         for (SageFamily family : SageFamily.values()) {
             int i = family.ordinal();
-            boolean owned = ClientFamilyUnlocks.isUnlocked(family);
-            int tone = owned ? GOLD_COLOR : READY_COLOR;
-            Paint.ring(gui, cx[i], cy[i], r, tone, 1.0F);
-            String code = shortCode(family);
-            gui.drawString(font, code, (int) (cx[i] - (font.width(code) / 2.0F)),
-                    (int) (cy[i] - 4), 0xFFE8E8E8, false);
-            String name = family.displayName();
-            gui.drawString(font, name, (int) (cx[i] - (font.width(name) / 2.0F)),
-                    (int) (cy[i] + r + 3), tone | 0xFF000000, false);
-            if (!owned) {
-                String cost = "Lv " + family.minLevel() + " + 1000 XP";
-                gui.drawString(font, cost, (int) (cx[i] - (font.width(cost) / 2.0F)),
-                        (int) (cy[i] + r + 13), 0xFF9A9A9A, false);
+            drawNode(gui, font, family, cx[i], cy[i], r, zoom);
+        }
+        // hover tooltip, like the base mod's nodes
+        double hover = r + (8.0F * zoom);
+        for (SageFamily family : SageFamily.values()) {
+            int i = family.ordinal();
+            double dx = mouseX - cx[i];
+            double dy = mouseY - cy[i];
+            if ((dx * dx) + (dy * dy) <= hover * hover) {
+                tooltip(gui, font, family, (float) mouseX, (float) mouseY);
+                break;
             }
+        }
+    }
+
+    /** The base mod's node recipe: fill, additive glow, ring(s), glyph. */
+    private void drawNode(GuiGraphics gui, Font font, SageFamily family, float cx, float cy, float r, float zoom) {
+        boolean owned = ClientFamilyUnlocks.isUnlocked(family);
+        boolean ready = !owned && SageProgressClient.level() >= family.minLevel()
+                && SageProgressClient.xp() >= FamilyUnlocks.XP_COST;
+        int tone = owned ? ACQUIRED_COLOR : ready ? READY_COLOR : LOCKED_COLOR;
+
+        gui.fill((int) Math.round(cx - r), (int) Math.round(cy - r),
+                (int) Math.round(cx + r), (int) Math.round(cy + r), (240 << 24) | NODE_FILL);
+
+        Paint.beginAdditive();
+        float glow = owned ? 0.8F : ready ? 0.55F : 0.22F;
+        Paint.glow(gui, cx, cy, r * 2.6F, tone, glow * 0.6F);
+        Paint.ring(gui, cx, cy, r, tone, owned ? 0.95F : 0.6F);
+        if (owned) {
+            Paint.ring(gui, cx, cy - 2.5F, r, tone, 0.7F);
+        }
+        Paint.endAdditive(gui);
+
+        String glyph = Component.translatable("greatsagegrowth.tree." + family.tensuraPackage() + ".glyph")
+                .getString();
+        var pose = gui.pose();
+        pose.pushPose();
+        pose.translate(cx, cy, 0.0F);
+        float scale = 0.75F * zoom;
+        pose.scale(scale, scale, 1.0F);
+        int glyphColor = (255 << 24) | (owned ? 0xFFFFFF : tone);
+        gui.drawString(font, glyph, -font.width(glyph) / 2, -4, glyphColor, false);
+        pose.popPose();
+    }
+
+    /** The base mod's tooltip: title, wrapped description, requirement lines. */
+    private void tooltip(GuiGraphics gui, Font font, SageFamily family, float mouseX, float mouseY) {
+        boolean owned = ClientFamilyUnlocks.isUnlocked(family);
+        List<String> lines = new ArrayList<>();
+        lines.add(family.displayName());
+        wrap(lines, font, Component
+                .translatable("greatsagegrowth.tree." + family.tensuraPackage() + ".desc").getString());
+        if (owned) {
+            lines.add(Component.translatable("greatsagegrowth.unlocked", family.displayName()).getString());
+        } else if (SageProgressClient.level() < family.minLevel()) {
+            lines.add(Component.translatable("greatsagegrowth.needLevel", family.minLevel(),
+                    family.displayName()).getString());
+        } else {
+            lines.add(Component.translatable("greatsagegrowth.needXp", FamilyUnlocks.XP_COST,
+                    family.displayName()).getString());
+        }
+
+        int width = 0;
+        for (String line : lines) {
+            width = Math.max(width, (int) Math.round(font.width(line) * 0.6F));
+        }
+        width += 10;
+        int height = (lines.size() * 8) + 7;
+        float x = mouseX + 12.0F;
+        if (x + width > viewLeft + viewWidth) {
+            x = mouseX - 12.0F - width;
+        }
+        float y = Math.min(mouseY + 6.0F, viewTop + viewHeight - height - 2.0F);
+
+        gui.fill(Math.round(x), Math.round(y), Math.round(x) + width, Math.round(y) + height,
+                (242 << 24) | TOOLTIP_BG);
+        int border = (178 << 24) | READY_COLOR;
+        gui.fill(Math.round(x), Math.round(y), Math.round(x) + width, Math.round(y) + 1, border);
+        gui.fill(Math.round(x), Math.round(y) + height - 1, Math.round(x) + width, Math.round(y) + height, border);
+
+        var pose = gui.pose();
+        for (int i = 0; i < lines.size(); i++) {
+            pose.pushPose();
+            pose.translate(x + 5.0F, y + 4.0F + (i * 8.0F), 0.0F);
+            pose.scale(0.6F, 0.6F, 1.0F);
+            int color = (255 << 24) | (i == 0 ? ACQUIRED_COLOR : TOOLTIP_BODY);
+            gui.drawString(font, lines.get(i), 0, 0, color, false);
+            pose.popPose();
+        }
+    }
+
+    /** Greedy wrap to the addon's tooltip width (WRAP = 250). */
+    private void wrap(List<String> out, Font font, String text) {
+        int wrapAt = 250;
+        StringBuilder current = new StringBuilder();
+        for (String word : text.split(" ")) {
+            String candidate = current.isEmpty() ? word : current + " " + word;
+            if (font.width(candidate) > wrapAt && current.length() > 0) {
+                out.add(current.toString());
+                current = new StringBuilder(word);
+            } else {
+                current = new StringBuilder(candidate);
+            }
+        }
+        if (current.length() > 0) {
+            out.add(current.toString());
         }
     }
 
@@ -138,11 +253,5 @@ public class SkillTreeViewFamilyNodesMixin {
                 return;
             }
         }
-    }
-
-    /** Two-letter in-ring code: As / Sp / Su (distinct, matching ring size). */
-    private static String shortCode(SageFamily family) {
-        String pkg = family.tensuraPackage();
-        return pkg.substring(0, 1).toUpperCase(java.util.Locale.ROOT) + pkg.substring(1, 2);
     }
 }

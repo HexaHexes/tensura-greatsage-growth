@@ -47,6 +47,9 @@ public class SkillTreeViewFamilyNodesMixin {
     /** SkillTreeView.GOLD - owned emphasis. */
     private static final int GOLD_COLOR = 16765562;
 
+    /** One-shot first-frame log; replaces the removed corner strip diagnostics (#20). */
+    private static volatile boolean firstFrameLogged;
+
     @Shadow
     private float zoom;
 
@@ -83,6 +86,12 @@ public class SkillTreeViewFamilyNodesMixin {
             int i = family.ordinal();
             cx[i] = FamilyTreeLayout.screen(ox, FamilyTreeLayout.rawX(family), zoom);
             cy[i] = FamilyTreeLayout.screen(oy, FamilyTreeLayout.rawY(family), zoom);
+        }
+        if (!firstFrameLogged) {
+            firstFrameLogged = true;
+            TensuraGreatSageGrowth.LOGGER.info(
+                    "growth tree nodes first frame: origin=({},{}) zoom={} aspectual=({},{})",
+                    (int) ox, (int) oy, zoom, (int) cx[0], (int) cy[0]);
         }
         // chain first so the nodes sit on top of their thread
         for (int i = 0; i + 1 < cx.length; i++) {

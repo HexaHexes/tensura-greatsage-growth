@@ -1,5 +1,6 @@
 package org.bitwisemadness.tensuragreatsagegrowth.gametest;
 
+import dev.dedek.greatsage.SageNode;
 import dev.dedek.greatsage.server.AnalysisManager;
 import dev.dedek.greatsage.server.SageProgress;
 import io.github.manasmods.manascore.skill.api.ManasSkill;
@@ -34,7 +35,22 @@ public final class SpiritualUpgradeGameTests {
     @GameTest(template = "empty")
     public static void spiritual_gate_opens_with_unlock(GameTestHelper helper) {
         ServerPlayer player = MockPlayers.create(helper);
-        SageProgress.setXp(player, 10_000_000);
+        // fixture: RANK_UNIQUE's gate (level 20) and the family thread up to
+        // Spiritual - Resistance first, then Aspectual. RANK_EXTRA stays
+        // locked on purpose: the requirement is the family thread, not the ranks.
+        SageProgress.setXp(player, SageProgress.xpForLevel(SageNode.RANK_UNIQUE.minLevel()));
+        SageProgress.unlock(player, SageNode.RANK_RESISTANCE.id());
+        helper.assertTrue(SageProgress.has(player, SageNode.RANK_RESISTANCE),
+                "fixture: the Resistance rank node must unlock");
+
+        // owner ruling: spiritual requires aspectual - with level and points
+        // fine but Aspectual locked, the purchase must refuse
+        helper.assertTrue(!FamilyUnlocks.purchase(player, SageFamily.SPIRITUAL),
+                "spiritual must refuse while aspectual is locked");
+        helper.assertTrue(!FamilyUnlocks.isUnlocked(player, SageFamily.SPIRITUAL),
+                "the refused purchase must not record the unlock");
+        helper.assertTrue(FamilyUnlocks.purchase(player, SageFamily.ASPECTUAL),
+                "fixture: aspectual must be purchasable");
 
         // live spiritual skills; granted to the player, because the addon's own
         // analysis requires ownership (its notOwned gate)
@@ -64,9 +80,15 @@ public final class SpiritualUpgradeGameTests {
         helper.assertTrue(AnalysisManager.progressBySkill(player).isEmpty(),
                 "the family gate must refuse every spiritual analysis before the unlock");
 
-        // the purchase clears the minLevel gate (the XP above) and records the node
+        // the purchase clears the mirrored rank gate (level fixture above,
+        // points at level 20) and spends exactly RANK_UNIQUE's cost
+        int pointsBefore = SageProgress.points(player);
         helper.assertTrue(FamilyUnlocks.purchase(player, SageFamily.SPIRITUAL),
-                "the spiritual node must be purchasable with level and XP to spare");
+                "the spiritual node must be purchasable once aspectual is unlocked");
+        int spent = pointsBefore - SageProgress.points(player);
+        helper.assertTrue(spent == SageNode.RANK_UNIQUE.cost(),
+                "the purchase must spend exactly RANK_UNIQUE's cost ("
+                        + SageNode.RANK_UNIQUE.cost() + " points); got " + spent);
 
         // post-unlock: at least one spiritual skill must actually start analysing;
         // the refusals are read back from the mock's chat so a failure names the gate

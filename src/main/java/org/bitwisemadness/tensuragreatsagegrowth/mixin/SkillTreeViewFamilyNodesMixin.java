@@ -36,9 +36,12 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  * <p>The node recipe is a faithful port of the decompiled
  * {@code SkillTreeView.node()}/{@code tooltip()}: dark fill, additive glow and
  * ring in the state colours (owned -> ACQUIRED, ready -> READY, gated ->
- * LOCKED), concentric inner ring (radius - 2.5) on every node, glyph at {@code 0.75 * zoom}; tooltips carry
- * title, wrapped description, a compact cost line and the base's own
- * "Needs level" phrasing ({@code greatsage.tree.needLevel}).</p>
+ * LOCKED), the concentric inner ring (radius - 2.5) on unlocked nodes only,
+ * glyph at {@code 0.75 * zoom}; tooltips carry
+ * title, wrapped description, a points cost line, the base's own
+ * "Needs level"/"Needs points" phrasings ({@code greatsage.tree.needLevel} /
+ * {@code greatsage.tree.needPoints}) and the family thread's missing
+ * requirement.</p>
  */
 @Mixin(targets = "dev.dedek.greatsage.client.SkillTreeView")
 public class SkillTreeViewFamilyNodesMixin {
@@ -148,11 +151,21 @@ public class SkillTreeViewFamilyNodesMixin {
         }
     }
 
+    /** The client mirror of the family thread's requirement gate (server: FamilyUnlocks). */
+    private boolean greatsagegrowth$requirementOwned(SageFamily family) {
+        return switch (family) {
+            case ASPECTUAL -> SageProgressClient.has(SageNode.RANK_RESISTANCE);
+            case SPIRITUAL -> ClientFamilyUnlocks.isUnlocked(SageFamily.ASPECTUAL);
+            case SUMMON -> ClientFamilyUnlocks.isUnlocked(SageFamily.SPIRITUAL);
+        };
+    }
+
     /** The base mod's node recipe: fill, additive glow, ring(s), glyph. */
     private void drawNode(GuiGraphics gui, Font font, SageFamily family, float cx, float cy, float r, float zoom) {
         boolean owned = ClientFamilyUnlocks.isUnlocked(family);
-        boolean ready = !owned && SageProgressClient.level() >= family.minLevel()
-                && SageProgressClient.xp() >= FamilyUnlocks.XP_COST;
+        boolean ready = !owned && SageProgressClient.level() >= FamilyUnlocks.minLevel(family)
+                && SageProgressClient.points() >= FamilyUnlocks.cost(family)
+                && greatsagegrowth$requirementOwned(family);
         int tone = owned ? ACQUIRED_COLOR : ready ? READY_COLOR : LOCKED_COLOR;
 
         gui.fill((int) Math.round(cx - r), (int) Math.round(cy - r),
@@ -162,9 +175,12 @@ public class SkillTreeViewFamilyNodesMixin {
         float glow = owned ? 0.8F : ready ? 0.55F : 0.22F;
         Paint.glow(gui, cx, cy, r * 2.6F, tone, glow * 0.6F);
         Paint.ring(gui, cx, cy, r, tone, owned ? 0.95F : 0.6F);
-        // concentric inner ring: the old y-2.5 offset made the two circles
-        // intersect (playtest 13:29-13:32); the base pairs radius with radius-2.5.
-        Paint.ring(gui, cx, cy, Math.max(r - 2.5F, 1.5F), tone, owned ? 0.7F : 0.45F);
+        // The concentric inner ring marks the acquired state only (playtest
+        // 15:06: the double ring is the unlocked style); radius - 2.5 floored
+        // at 1.5, the same pairing the base uses.
+        if (owned) {
+            Paint.ring(gui, cx, cy, Math.max(r - 2.5F, 1.5F), tone, 0.7F);
+        }
         Paint.endAdditive(gui);
 
         String glyph = Component.translatable("greatsagegrowth.tree." + family.tensuraPackage() + ".glyph")
@@ -189,9 +205,18 @@ public class SkillTreeViewFamilyNodesMixin {
         if (owned) {
             lines.add(Component.translatable("greatsagegrowth.unlocked", family.displayName()).getString());
         } else {
-            lines.add(Component.translatable("greatsagegrowth.tree.cost", FamilyUnlocks.XP_COST).getString());
-            if (SageProgressClient.level() < family.minLevel()) {
-                lines.add(Component.translatable("greatsage.tree.needLevel", family.minLevel()).getString());
+            lines.add(Component.translatable("greatsagegrowth.tree.cost", FamilyUnlocks.cost(family)).getString());
+            if (SageProgressClient.level() < FamilyUnlocks.minLevel(family)) {
+                lines.add(Component
+                        .translatable("greatsage.tree.needLevel", FamilyUnlocks.minLevel(family)).getString());
+            } else if (SageProgressClient.points() < FamilyUnlocks.cost(family)) {
+                lines.add(Component
+                        .translatable("greatsage.tree.needPoints", FamilyUnlocks.cost(family)).getString());
+            }
+            if (!greatsagegrowth$requirementOwned(family)) {
+                lines.add(Component
+                        .translatable("greatsagegrowth.tree.requires", FamilyUnlocks.requirementName(family))
+                        .getString());
             }
         }
 

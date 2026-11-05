@@ -12,5 +12,11 @@
   "greatsage.tier.summon": "summon",
   "greatsage.filter.tier.aspectual": "Aspectual",
   "greatsage.filter.tier.spiritual": "Spiritual",
-  "greatsage.filter.tier.summon": "Summoning"
+  "greatsage.filter.tier.summon": "Summoning",
+  "greatsagegrowth.tree.aspectual.glyph": "\u89b3",
+  "greatsagegrowth.tree.spiritual.glyph": "\u970a",
+  "greatsagegrowth.tree.summon.glyph": "\u53ec",
+  "greatsagegrowth.tree.aspectual.desc": "Unlocks the Sage's analysis of Aspectual magic.",
+  "greatsagegrowth.tree.spiritual.desc": "Unlocks the Sage's analysis of Spiritual magic.",
+  "greatsagegrowth.tree.summon.desc": "Unlocks the Sage's analysis of Summoning magic."
 }

@@ -5,7 +5,6 @@ import dev.dedek.greatsage.client.Paint;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.resources.ResourceLocation;
 import org.bitwisemadness.tensuragreatsagegrowth.SageFamily;
 import org.bitwisemadness.tensuragreatsagegrowth.TensuraGreatSageGrowth;
 import org.bitwisemadness.tensuragreatsagegrowth.client.FamilyTreeLayout;
@@ -73,10 +72,10 @@ public class SkillTreeViewFamilyNodesMixin {
     }
 
     @Inject(
-            method = "render(Lnet/minecraft/client/gui/GuiGraphics;Lnet/minecraft/client/gui/Font;FFFFFFLnet/minecraft/resources/ResourceLocation;DD)V",
+            method = "render(Lnet/minecraft/client/gui/GuiGraphics;Lnet/minecraft/client/gui/Font;FFFFFDD)V",
             at = @At("RETURN"))
     private void greatsagegrowth$renderFamilyNodes(GuiGraphics gui, Font font, float p1, float p2, float p3,
-            float p4, float p5, float p6, ResourceLocation icon, double mouseX, double mouseY, CallbackInfo ci) {
+            float p4, float p5, double mouseX, double mouseY, CallbackInfo ci) {
         float ox = originX();
         float oy = originY();
         float r = radius();

@@ -6,5 +6,11 @@
   "greatsagegrowth.needLevel": "The Sage must reach level %1$d before %2$s analysis.",
   "greatsagegrowth.analysisReport": "%s analysis complete: %s",
   "greatsagegrowth.playersOnly": "This command is for players.",
-  "greatsagegrowth.unknownFamily": "Unknown family. Try: aspectual, spiritual, summon."
+  "greatsagegrowth.unknownFamily": "Unknown family. Try: aspectual, spiritual, summon.",
+  "greatsage.tier.aspectual": "aspectual",
+  "greatsage.tier.spiritual": "spiritual",
+  "greatsage.tier.summon": "summon",
+  "greatsage.filter.tier.aspectual": "Aspectual",
+  "greatsage.filter.tier.spiritual": "Spiritual",
+  "greatsage.filter.tier.summon": "Summoning"
 }

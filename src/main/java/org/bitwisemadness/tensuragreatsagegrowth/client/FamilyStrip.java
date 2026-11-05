@@ -8,17 +8,21 @@ import org.bitwisemadness.tensuragreatsagegrowth.TensuraGreatSageGrowth;
 import org.bitwisemadness.tensuragreatsagegrowth.net.ClientFamilyUnlocks;
 
 /**
- * Draws the growth strip inside the Sage menu (stack PR C, issue #10): the
- * addon's tree is keyed by its final SageNode enum (layout, glyphs and hubs -
- * impossible to extend), so the mod renders its own row of family entries -
+ * Draws the growth strip inside the Sage screens (stack PR C, issue #10): the
+ * addon's node tree cannot be extended (its layout maps are keyed by the final
+ * {@code SageNode} enum), so the mod renders its own row of family entries -
  * same information, same purchase flow, our geometry (see FamilyStripLayout,
  * which holds the pure part for the unit tests).
  *
+ * <p>Visibility pass (issue #20, from the alpha.10 playtest screenshots):
+ * anchored to the bottom-<b>right</b> edge so it never covers the screens'
+ * bottom-left hint lines, and the palette reads on any backdrop - dark chips
+ * with bright text (the old owned style drew gold text on a gold fill), with a
+ * gold accent bar marking owned rows.</p>
+ *
  * <p>Runtime diagnostics (issue #17): the first rendered frame logs screen
  * dims, the computed rect and every label as INFO, so an invisible strip can be
- * told apart from a strip that never draws. {@code -Dgreatsagegrowth.stripDebug=true}
- * additionally outlines the rect in magenta with a corner marker - a visible
- * proof of where (or whether) the strip paints.</p>
+ * told apart from a strip that never draws.</p>
  */
 public final class FamilyStrip {
 
@@ -33,7 +37,7 @@ public final class FamilyStrip {
 
     /** Draw the strip (client render thread only). */
     public static void render(GuiGraphics gui, Font font, float screenWidth, float screenHeight) {
-        float left = FamilyStripLayout.LEFT_PAD;
+        float left = FamilyStripLayout.left(screenWidth);
         float top = FamilyStripLayout.top(screenHeight);
         float bottom = top + (FamilyStripLayout.ROW_HEIGHT * SageFamily.values().length);
         if (!firstFrameLogged) {
@@ -57,12 +61,16 @@ public final class FamilyStrip {
         for (SageFamily family : SageFamily.values()) {
             float y = top + (FamilyStripLayout.ROW_HEIGHT * row);
             boolean owned = ClientFamilyUnlocks.isUnlocked(family);
-            int bg = owned ? 0x66B8860D : 0x66101018;
-            int fg = owned ? 0xFFFFD700 : 0xFFDDDDDD;
+            int bg = owned ? 0xD01C1405 : 0xC017171D;
+            int fg = owned ? 0xFFFFD700 : 0xFFE8E8E8;
             gui.fill((int) left, (int) y, (int) (left + FamilyStripLayout.ROW_WIDTH),
                     (int) (y + FamilyStripLayout.ROW_HEIGHT - 2), bg);
+            if (owned) {
+                gui.fill((int) left, (int) y, (int) left + 2,
+                        (int) (y + FamilyStripLayout.ROW_HEIGHT - 2), 0xFFFFD700);
+            }
             gui.drawString(font, Component.literal(FamilyStripLayout.label(family)),
-                    (int) left + 4, (int) y + 2, fg, false);
+                    (int) left + 6, (int) y + 2, fg, false);
             row++;
         }
         if (DEBUG) {

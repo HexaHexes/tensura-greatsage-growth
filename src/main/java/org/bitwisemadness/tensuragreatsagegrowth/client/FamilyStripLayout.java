@@ -8,11 +8,15 @@ import org.bitwisemadness.tensuragreatsagegrowth.net.ClientFamilyUnlocks;
  * The geometry and state of the mod's growth strip (stack PR C, issue #10) -
  * deliberately free of Minecraft types so the pure unit tests can load it
  * (the template's rule: unit tests are pure JVM, game types live in gametests).
+ *
+ * <p>The strip is anchored to the <b>right</b> edge (issue #20): bottom-left is
+ * where the Sage screens print their own hint lines ("Drag to move - Scroll to
+ * zoom..."), which the strip used to cover.</p>
  */
 public final class FamilyStripLayout {
 
     public static final float ROW_HEIGHT = 12.0F;
-    public static final float LEFT_PAD = 8.0F;
+    public static final float SIDE_PAD = 8.0F;
     public static final float BOTTOM_PAD = 8.0F;
     public static final float ROW_WIDTH = 150.0F;
 
@@ -39,9 +43,14 @@ public final class FamilyStripLayout {
         return screenHeight - BOTTOM_PAD - (ROW_HEIGHT * SageFamily.values().length);
     }
 
+    /** The left edge of the right-anchored strip (pure - unit tested). */
+    public static float left(float screenWidth) {
+        return screenWidth - SIDE_PAD - ROW_WIDTH;
+    }
+
     /** The row under a mouse position, or null (pure - unit tested). */
     public static Row hit(float mouseX, float mouseY, float screenWidth, float screenHeight) {
-        float left = LEFT_PAD;
+        float left = left(screenWidth);
         float stripTop = top(screenHeight);
         if (mouseX < left || mouseX > left + ROW_WIDTH || mouseY < stripTop) {
             return null;

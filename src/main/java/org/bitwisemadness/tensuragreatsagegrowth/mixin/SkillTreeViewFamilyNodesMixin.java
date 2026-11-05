@@ -5,7 +5,6 @@ import dev.dedek.greatsage.client.Paint;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.resources.ResourceLocation;
 import org.bitwisemadness.tensuragreatsagegrowth.SageFamily;
 import org.bitwisemadness.tensuragreatsagegrowth.TensuraGreatSageGrowth;
 import org.bitwisemadness.tensuragreatsagegrowth.client.FamilyTreeLayout;
@@ -47,6 +46,9 @@ public class SkillTreeViewFamilyNodesMixin {
     /** SkillTreeView.GOLD - owned emphasis. */
     private static final int GOLD_COLOR = 16765562;
 
+    /** One-shot first-frame log; replaces the removed corner strip diagnostics (#20). */
+    private static volatile boolean firstFrameLogged;
+
     @Shadow
     private float zoom;
 
@@ -70,10 +72,10 @@ public class SkillTreeViewFamilyNodesMixin {
     }
 
     @Inject(
-            method = "render(Lnet/minecraft/client/gui/GuiGraphics;Lnet/minecraft/client/gui/Font;FFFFFFLnet/minecraft/resources/ResourceLocation;DD)V",
+            method = "render(Lnet/minecraft/client/gui/GuiGraphics;Lnet/minecraft/client/gui/Font;FFFFFDD)V",
             at = @At("RETURN"))
     private void greatsagegrowth$renderFamilyNodes(GuiGraphics gui, Font font, float p1, float p2, float p3,
-            float p4, float p5, float p6, ResourceLocation icon, double mouseX, double mouseY, CallbackInfo ci) {
+            float p4, float p5, double mouseX, double mouseY, CallbackInfo ci) {
         float ox = originX();
         float oy = originY();
         float r = radius();
@@ -83,6 +85,12 @@ public class SkillTreeViewFamilyNodesMixin {
             int i = family.ordinal();
             cx[i] = FamilyTreeLayout.screen(ox, FamilyTreeLayout.rawX(family), zoom);
             cy[i] = FamilyTreeLayout.screen(oy, FamilyTreeLayout.rawY(family), zoom);
+        }
+        if (!firstFrameLogged) {
+            firstFrameLogged = true;
+            TensuraGreatSageGrowth.LOGGER.info(
+                    "growth tree nodes first frame: origin=({},{}) zoom={} aspectual=({},{})",
+                    (int) ox, (int) oy, zoom, (int) cx[0], (int) cy[0]);
         }
         // chain first so the nodes sit on top of their thread
         for (int i = 0; i + 1 < cx.length; i++) {

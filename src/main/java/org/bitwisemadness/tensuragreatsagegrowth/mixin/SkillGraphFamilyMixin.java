@@ -16,6 +16,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
  * The analysis screen's family entries (stack PR B, issue #10): the addon's
@@ -25,19 +26,19 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  * <p>This mixin injects just before {@code buildFacets()} - at that point the
  * addon has filled {@code byTier} and {@code tiers} but has not yet derived the
  * facet options or the visible set from them - and appends one bucket per
- * <em>unlocked</em> family, holding that family's learned skills as the addon's
- * own {@code Node} records (built reflectively: the record's constructor is
- * private, and its canonical shape is an implementation detail of the addon's
- * package). The tier key is the family's package fragment ("aspectual",
- * "spiritual", "summon") - lowercase like every other tier, unknown to
- * {@code rankLocked}'s switch (so not rank-locked), and absent from
- * {@code RANK_*} gating, which is exactly the policy from #3: the family node
- * IS the progression gate. {@code Node.analysable()} then reads
+ * family, holding that family's learned skills as the addon's own {@code Node}
+ * records (built reflectively: the record's constructor is private, and its
+ * canonical shape is an implementation detail of the addon's package). The tier
+ * key is the family's package fragment ("aspectual", "spiritual", "summon") -
+ * lowercase like every other tier. {@code Node.analysable()} reads
  * {@code !mastered} for these buckets, so learned family skills carry the
  * analysable badge automatically.</p>
  *
- * <p>Client-only: declared in the mixins.json {@code client} array, so
- * dedicated servers (including the GameTest harness) never load it.</p>
+ * <p><b>A locked family is reported as rank-locked</b> (the {@code rankLocked}
+ * injector below), so its tier greys out exactly as a sealed rank does and a
+ * click refuses with the addon's own seal message - the policy from #29-#31.
+ * Client-only: declared in the mixins.json {@code client} array, so dedicated
+ * servers (including the GameTest harness) never load it.</p>
  */
 @Mixin(targets = "dev.dedek.greatsage.client.SkillGraph", remap = false)
 public class SkillGraphFamilyMixin {
@@ -54,9 +55,6 @@ public class SkillGraphFamilyMixin {
     private void greatsagegrowth$appendFamilyBuckets(LocalPlayer player, CallbackInfo ci) {
         Map<String, List<Object>> staging = new java.util.LinkedHashMap<>();
         for (SageFamily family : SageFamily.values()) {
-            if (!ClientFamilyUnlocks.isUnlocked(family)) {
-                continue;
-            }
             List<Object> nodes = new ArrayList<>();
             for (ManasSkillInstance instance : SkillAPI.getSkillsFrom(player).getLearnedSkills()) {
                 ManasSkill skill = instance.getSkill();
@@ -80,6 +78,15 @@ public class SkillGraphFamilyMixin {
                     tiers.add(entry.getKey());
                 }
             }
+        }
+    }
+
+    /** Seals a locked family's tier: rank-locked tiers grey out and refuse a click with the addon's own message. */
+    @Inject(method = "rankLocked(Ljava/lang/String;)Z", at = @At("HEAD"), cancellable = true)
+    private static void greatsagegrowth$lockLockedFamilies(String tier, CallbackInfoReturnable<Boolean> cir) {
+        SageFamily family = SageFamily.fromArgument(tier);
+        if (family != null && !ClientFamilyUnlocks.isUnlocked(family)) {
+            cir.setReturnValue(true);
         }
     }
 

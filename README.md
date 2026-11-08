@@ -17,9 +17,10 @@ tier, analysed through the addon's own messages, voice lines and timings.
   8, Summoning Magic at 12 - each costing 1000 Sage XP. The gate is checked
   server-side, and the refusals read in the Sage's own voice: wrong level, not
   enough XP, or already unlocked.
-- **Unlocked families join the analysis screen.** The skill browser gains one
-  tier bucket per unlocked family, holding that family's learned skills with the
-  normal analysable badges. Locked families are simply not listed.
+- **Every family joins the analysis screen.** The skill browser gains one tier
+  bucket per family, holding that family's learned skills with the normal
+  analysable badges. A locked family stays listed, greyed out the way a sealed
+  rank is, and clicking it refuses with the Sage's own sealed-rank line.
 - **The unlock is real.** A locked family is refused by the server even if
   selected (`The Great Sage has not unlocked ... analysis yet`), and once bought
   it flows through the addon's own analysis machinery - its messages, voice

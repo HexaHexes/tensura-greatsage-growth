@@ -27,11 +27,11 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  * Resistance node, base-mod style, tooltip-based info - and, from the
  * 13:29-13:32 playtest, <b>never drawn over the base mod's tooltips</b>).
  *
- * <p><b>Two injection points enforce the z-order</b>: the nodes and their
- * thread draw right <b>after the view scissor is released</b> (once per frame,
- * before the base's own tooltip pass), and only the <b>hover tooltip</b> draws
- * at {@code RETURN} - so base tooltips always cover our nodes, and our tooltip
- * draws last like theirs.</p>
+ * <p><b>Three injection points enforce the z-order</b>: the thread draws right
+ * after the base's own {@code links} and before its nodes, so every node covers
+ * it; the family nodes draw after the view scissor is released (once per frame,
+ * before the base's tooltip pass), above the thread but under the tooltips; and
+ * only the <b>hover tooltip</b> draws at {@code RETURN}, last like theirs.</p>
  *
  * <p>The node recipe is a faithful port of the decompiled
  * {@code SkillTreeView.node()}/{@code tooltip()}: dark fill, additive glow and
@@ -50,6 +50,9 @@ public class SkillTreeViewFamilyNodesMixin {
     private static final int ACQUIRED_COLOR = 14679276;
     private static final int READY_COLOR = 9431488;
     private static final int LOCKED_COLOR = 6256232;
+    /** The base's own link tones (decompiled from links()): an owned requirement vs a locked one. */
+    private static final int LINK_OWNED = 9431488;
+    private static final int LINK_LOCKED = 2769976;
     private static final int NODE_FILL = 465426;
     private static final int TOOLTIP_BG = 267278;
     private static final int TOOLTIP_BODY = 10469295;
@@ -99,7 +102,40 @@ public class SkillTreeViewFamilyNodesMixin {
         };
     }
 
-    /** Nodes + thread: after the view scissor release, before the base tooltip pass. */
+    /**
+     * The family thread: drawn right after the base's own {@code links} and
+     * before its nodes, so every node - default or family - renders over it.
+     */
+    @Inject(
+            method = "render(Lnet/minecraft/client/gui/GuiGraphics;Lnet/minecraft/client/gui/Font;FFFFFDD)V",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Ldev/dedek/greatsage/client/SkillTreeView;links(Lnet/minecraft/client/gui/GuiGraphics;Ljava/util/List;F)V",
+                    shift = At.Shift.AFTER))
+    private void greatsagegrowth$renderFamilyThreads(GuiGraphics gui, Font font, float p1, float p2, float p3,
+            float p4, float p5, double mouseX, double mouseY, CallbackInfo ci) {
+        // the branch starts at the Resistance node (ruling on #20)
+        float[] anchor = {
+                FamilyTreeLayout.screen(originX(), FamilyTreeLayout.ANCHOR_X, zoom),
+                FamilyTreeLayout.screen(originY(), FamilyTreeLayout.ANCHOR_Y, zoom)
+        };
+        float[] firstNode = greatsagegrowth$pos(0);
+        greatsagegrowth$thread(gui, anchor[0], anchor[1], firstNode[0], firstNode[1],
+                greatsagegrowth$requirementOwned(SageFamily.ASPECTUAL));
+        for (int i = 0; i + 1 < SageFamily.values().length; i++) {
+            float[] a = greatsagegrowth$pos(i);
+            float[] b = greatsagegrowth$pos(i + 1);
+            greatsagegrowth$thread(gui, a[0], a[1], b[0], b[1],
+                    greatsagegrowth$requirementOwned(SageFamily.values()[i + 1]));
+        }
+    }
+
+    /** The base's link style: tone and alpha switch on whether the requirement node is owned. */
+    private void greatsagegrowth$thread(GuiGraphics gui, float x1, float y1, float x2, float y2, boolean owned) {
+        segment(gui, x1, y1, x2, y2, owned ? LINK_OWNED : LINK_LOCKED, zoom * (owned ? 0.75F : 0.5F));
+    }
+
+    /** Family nodes: after the view scissor release, before the base tooltip pass. */
     @Inject(
             method = "render(Lnet/minecraft/client/gui/GuiGraphics;Lnet/minecraft/client/gui/Font;FFFFFDD)V",
             at = @At(
@@ -114,18 +150,6 @@ public class SkillTreeViewFamilyNodesMixin {
             TensuraGreatSageGrowth.LOGGER.info(
                     "growth tree nodes first frame: origin=({},{}) zoom={} aspectual=({},{})",
                     (int) originX(), (int) originY(), zoom, (int) first[0], (int) first[1]);
-        }
-        // the branch starts at the Resistance node (ruling on #20)
-        float[] anchor = {
-                FamilyTreeLayout.screen(originX(), FamilyTreeLayout.ANCHOR_X, zoom),
-                FamilyTreeLayout.screen(originY(), FamilyTreeLayout.ANCHOR_Y, zoom)
-        };
-        float[] firstNode = greatsagegrowth$pos(0);
-        segment(gui, anchor[0], anchor[1], firstNode[0], firstNode[1], ACQUIRED_COLOR, 0.75F);
-        for (int i = 0; i + 1 < SageFamily.values().length; i++) {
-            float[] a = greatsagegrowth$pos(i);
-            float[] b = greatsagegrowth$pos(i + 1);
-            segment(gui, a[0], a[1], b[0], b[1], ACQUIRED_COLOR, 0.75F);
         }
         for (int i = 0; i < SageFamily.values().length; i++) {
             float[] p = greatsagegrowth$pos(i);

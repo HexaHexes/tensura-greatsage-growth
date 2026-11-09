@@ -43,6 +43,25 @@ versionRange = "[0.0.7,)"
 ordering = "AFTER"
 side = "BOTH"
 
+# Tensura: Reincarnated - required: the growth hooks import Tensura's EP/
+# mastery types unconditionally (no gate anywhere in main).
+[[dependencies.${mod_id}]]
+modId = "tensura"
+type = "required"
+versionRange = "[2.0,)"
+ordering = "AFTER"
+side = "BOTH"
+
+# ManasCore - required: the skill/attribute APIs the stage hooks drive are
+# imported unconditionally, same as Tensura above. build.gradle carries both
+# as localRuntime, so every CI/dev run satisfies the mandatory deps.
+[[dependencies.${mod_id}]]
+modId = "manascore"
+type = "required"
+versionRange = "[4.0.0.2,)"
+ordering = "AFTER"
+side = "BOTH"
+
 # Add your mod's dependencies below. Use type = "optional" for anything the mod
 # works without, and gate the code that touches it (mixins, registrations) so it
 # no-ops when the dependency is absent.
